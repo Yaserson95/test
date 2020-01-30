@@ -1,9 +1,7 @@
 <?php
 
 Class fileString {
-
 	private $str;
-
 	function fileString($str) {
 		if (strlen($str) !== 0) {
 			$this->str = $str;
@@ -11,7 +9,6 @@ Class fileString {
 			throw new \Exception('Empty String');
 		}
 	}
-
 	function getKey() {
 		return explode("\t", $this->str)['0'];
 	}
@@ -19,58 +16,92 @@ Class fileString {
 	function getValue() {
 		return explode("\t", $this->str)['1'];
 	}
-
 }
 
-Class FileSearcher {
-
+Class FileSearcher{
 	private $file;
-
 	function FileSearcher($fileName) {
 		$this->file = fopen($fileName, "r");
 	}
 
-	function getLength() {
+	function getLength(){
 		$linecount = 0;
-		while (!feof($this->file)) {
-			$line = fgets($this->file, 4096);
-			$linecount = $linecount + substr_count($line, PHP_EOL);
+		while(($p = fgetc($this->file))){
+			if(ord($p)===0x0A){
+				$linecount++;
+			}
 		}
-		return $linecount;
+		return $linecount+1;
 	}
+	
 
-	private function goToString(int $string) {
+	private function goToString(int $nstring) {
 		fseek($this->file, 0);  // seek to 0
 		$i = 0;
-		$bufcarac = 0;
-		for ($i = 1; $i < $string; $i++) {
-			$ligne = fgets($this->file);
-			$bufcarac += strlen($ligne);
+		$linecount = 0;
+		while(($linecount!=$nstring)){
+			if(!($p= fgetc($this->file))){
+				break;
+			}
+			if(ord($p)===0x0A){
+				$linecount++;
+			}
+			$i++;
 		}
-
-		fseek($this->file, $bufcarac);
-		return ($bufcarac);
+		return $i;
 	}
-
+	private function cmpKey($key){
+		$f = true;
+		$n = strlen($key);
+		for($i=0;$i<$n;$i++){
+			if($key[$i]===fgetc($this->file)){
+			   continue;
+			}
+			else{
+				$f = false;
+				break;
+			}
+		}
+		if(fgetc($this->file)!=="\t"){
+			$f=false;
+		}
+		return $f;
+	}
+	function getCurrentString(){
+		$pos = ftell($this->file);
+		$str = "";
+		while(($p = fgetc($this->file))){
+			if(ord($p)===0x0A){
+				break;
+			}
+			$str.=$p;
+		}
+		fseek($this->file, $pos);
+		return $str;
+	}
 	function getString(int $string) {
-		$bufcarac = $this->goToString($string);
-		return stream_get_line($this->file, $bufcarac, "\x0A");
+		$this->goToString($string);
+		return $this->getCurrentString();
 	}
 
-	function binarySearch($searchKey, $left = 0, $right) {
-		if ($right <= $left) {
+	function binarySearch($searchKey, int $left = 0, int $right) {
+		if ($left>=$right) {
 			return 'undef';
 		}
-		$midle = (int) (($right + $left) / 2);
-		$curString = New FileString($this->getString($midle));
-		if ($curString->getKey() === $searchKey) {
-			return $curString;
+		$midle = floor(($right+$left)/2);
+		$this->goToString($midle);
+		if ($this->cmpKey($searchKey)) {
+			return new fileString($this->getString($midle));
 		}
-		$rezult = FileSearcher::binarySearch($searchKey, $left, $midle - 1);
-		if ($rezult != "undef") {
+
+		$rezult = $this->binarySearch($searchKey, $left, $midle);
+		if ($rezult !== 'undef') {
 			return $rezult;
 		}
-		return FileSearcher::binarySearch($searchKey, $midle + 1, $right);
+		else{
+			return $this->binarySearch($searchKey, $midle + 1, $right);
+		}
+
 	}
 
 }
