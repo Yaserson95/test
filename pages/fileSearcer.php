@@ -26,8 +26,9 @@ Class FileSearcher{
 
 	function getLength(){
 		$linecount = 0;
-		while(($p = fgetc($this->file))){
-			if(ord($p)===0x0A){
+		while(!feof($this->file)){
+		$p = fgetc($this->file);
+			if(ord($p)==0x0A){
 				$linecount++;
 			}
 		}
@@ -39,10 +40,8 @@ Class FileSearcher{
 		fseek($this->file, 0);  // seek to 0
 		$i = 0;
 		$linecount = 0;
-		while(($linecount!=$nstring)){
-			if(!($p= fgetc($this->file))){
-				break;
-			}
+		while(($linecount!=$nstring)&& !feof($this->file)){
+			$p= fgetc($this->file);
 			if(ord($p)===0x0A){
 				$linecount++;
 			}
@@ -70,7 +69,8 @@ Class FileSearcher{
 	function getCurrentString(){
 		$pos = ftell($this->file);
 		$str = "";
-		while(($p = fgetc($this->file))){
+		while(!feof($this->file)){
+			$p = fgetc($this->file);
 			if(ord($p)===0x0A){
 				break;
 			}
@@ -79,29 +79,37 @@ Class FileSearcher{
 		fseek($this->file, $pos);
 		return $str;
 	}
+	function getCurrentKey(){
+		$key="";
+		while(!feof($this->file)){
+			$p = fgetc($this->file);
+			if($p==="\x0A"||$p==="\t"){
+				break;
+			}
+			$key.=$p;
+		}
+		return $key;
+	}
 	function getString(int $string) {
 		$this->goToString($string);
 		return $this->getCurrentString();
 	}
-
+	
 	function binarySearch($searchKey, int $left = 0, int $right) {
 		if ($left>=$right) {
 			return 'undef';
 		}
 		$midle = floor(($right+$left)/2);
 		$this->goToString($midle);
-		if ($this->cmpKey($searchKey)) {
-			return new fileString($this->getString($midle));
+		$curKey = $this->getCurrentKey();
+		$cmp = strnatcasecmp($searchKey,$curKey);
+		switch($cmp){
+			case 1:
+				return $this->binarySearch($searchKey, $midle + 1, $right);
+			case 0:
+				return new fileString($this->getString($midle));
+			case -1: 
+				return $this->binarySearch($searchKey, $left, $midle);
 		}
-
-		$rezult = $this->binarySearch($searchKey, $left, $midle);
-		if ($rezult !== 'undef') {
-			return $rezult;
-		}
-		else{
-			return $this->binarySearch($searchKey, $midle + 1, $right);
-		}
-
 	}
-
 }

@@ -6,7 +6,6 @@ if (!isset($_POST["Key"]) || !isset($_POST["Filename"])) {
 }
 $filename = $_SERVER["DOCUMENT_ROOT"] . "/files/" . $_POST["Filename"];
 $searcer = new FileSearcher($filename);
-//echo $searcer->getLength();
 $rezult = $searcer->binarySearch($_POST["Key"], 0, $searcer->getLength());
 ?>
 <!DOCTYPE html>
@@ -17,7 +16,7 @@ $rezult = $searcer->binarySearch($_POST["Key"], 0, $searcer->getLength());
 	</head>
 	<body>
 		<h1>Результаты поиска</h1>
-		<p>По запросу: "<?php echo $_POST["Key"]; ?>"
+		<p>По запросу: "<?php echo $_POST["Key"]." в файле ".$_POST["Filename"]; ?>"
 <?php
 if ($rezult == "undef") {
 	echo "ничего не найдено!";
